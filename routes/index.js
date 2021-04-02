@@ -44,7 +44,7 @@ router.post('/register', (req, res, next) => {
 })
 //get products
 router.get('/getProducts', (req, res, next) => {
-  const query = 'SELECT products.prod_id,products.prod_name,products.prod_price,products.prod_producer,products.prod_quantity,products.prod_bunker,products.prod_unit,products.prod_image, categories.cate_name FROM products INNER JOIN categories ON products.prod_cate = categories.cate_id'
+  const query = 'SELECT products.prod_id,	prod_name,cate_name,	prod_price,	prod_quantity,	prod_cate,	prod_bunker,	bunker_name,	prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN bunker b ON b.bunker_id = prod_bunker INNER JOIN categories cate ON cate.cate_id = prod_cate ORDER BY prod_name'
   pool.query(query, (error, response) => {
     if (response) {
       res.send(response.rows)
@@ -61,21 +61,31 @@ const fileStorageEngine = multer.diskStorage({
     cb(null, './images/products')
   },
   filename: (req, file, cb) => {
-    cb(null,file.originalname)
+    cb(null, file.originalname)
   }
 })
 const upload = multer({ storage: fileStorageEngine })
 //add products
-router.post('/add-products',upload.single("image"), (req, res) => {
-  console.log(req.file);
-  pool.query('select * from products',(err, response)=>{
-    console.log(req.body.product_name);
+router.post('/add-products', upload.single("image"), (req, res) => {
+  let { product_name, product_bunker, product_cate, product_price, product_producer, product_quantity, product_unit, product_image } = req.body
+  console.log(req.body);
+  pool.query("INSERT INTO products(prod_name,prod_price,prod_quantity,prod_cate,prod_bunker,prod_image,prod_unit,prod_producer) values ($1,$2,$3,$4,$5,$6,$7,$8)", [product_name, product_price, product_quantity, product_cate, product_bunker, product_image, product_unit, product_producer], (error, response) => {
+    try {
+      if (response) {
+        return res.status(200).json({ status: 200, messages: "Thêm sản phẩm thành công " })
+      }else if(error){
+        return res.status(200).json({ status: 404, messages: "Thêm sản phẩm thất bại " })
+      }
+
+    } catch {
+      return res.status(200).json({ status: 400, messages: "Thêm sản phẩm thất bại " })
+    }
   })
 })
 
-// đây là t cho nó 1 curl rồi từ fe t get thẳng mặt con đĩ image ra 
-router.get('/products/images/1', (req, res) => {
-  res.sendFile('images/products/1617200080408_giay-nike.png', { root: '.' })
+router.get('/products-image/:fieldid', (req, res) => {
+  const { fieldid } = req.params
+  res.sendFile('images/products/' + fieldid, { root: '.' })
 })
 
 //get categories
