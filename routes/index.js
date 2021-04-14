@@ -45,6 +45,7 @@ router.post('/register', (req, res, next) => {
 })
 
 
+
 //get products --WORKED
 router.get('/getProducts', (req, res, next) => {
   const query = 'SELECT products.prod_id,	prod_name, cate_name, price_sell, prod_price,	prod_quantity,	prod_cate,	prod_bunker,prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate ORDER BY prod_name'
@@ -122,8 +123,29 @@ router.get('/get-producer', (req, res, next) => {
     }
   })
 })
+//get bills list --WORKED
+router.get('/get-bill', (req, res, next) => {
+  const query = 'SELECT bills.bill_id,bill_infor,bill_total,bill_create_at, users.email, bunker.bunker_name, pay_status.status_name, bunker_status.status_name, suplier.suplier_name FROM bills INNER JOIN users ON users.user_id = bills.bill_user INNER JOIN bunker ON bunker.bunker_id = bills.bill_bunker_status INNER JOIN pay_status ON pay_status.status_id = bills.bill_pay_status INNER JOIN suplier ON suplier.suplier_id = bills.bill_suplier INNER JOIN bunker_status ON bunker_status.status_id = bills.bill_bunker_status'
+  pool.query(query, (error, response) => {
+    if (response) {
+      res.send(response.rows)
+    } else if (error) {
+      res.send(error)
+    }
+  })
+})
 
-
+// get suplier list --TESTING
+router.get('/get-suplier', (req, res, next) => {
+  const query = 'SELECT * FROM suplier'
+  pool.query(query, (error, response) => {
+    if (response) {
+      res.send(response.rows)
+    } else if (error) {
+      res.send(error)
+    }
+  })
+})
 /***********************POST METHOD**********************************/
 
 //upload image --WORKED
@@ -138,13 +160,14 @@ const fileStorageEngine = multer.diskStorage({
 const upload = multer({ storage: fileStorageEngine })
 //add products --WORKED
 router.post('/add-products', upload.single("image"), (req, res) => {
-  console.log(req.body);
   let { product_name, product_bunker, product_cate, product_price, product_producer, product_quantity, product_unit, product_image, product_description, product_sell } = req.body
+
+
   let query = "INSERT INTO public.products( prod_name, prod_price, prod_quantity, prod_cate, prod_image, prod_unit, prod_producer, prod_description, price_sell)VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
   pool.query(query, [product_name, product_price, product_quantity, product_cate, product_image, product_unit, product_producer, product_description, product_sell], (error, response) => {
     try {
       if (response) {
-        return res.status(200).json({ status: 200, messages: "Thêm sản phẩm thành công " })
+        return res.status(201).json({ status: 200, messages: "Thêm sản phẩm thành công " })
       } else if (error) {
         return res.status(200).json({ status: 404, messages: "Thêm sản phẩm thất bại " })
       }
@@ -216,6 +239,21 @@ router.post('/add-bunker', (req, res, next) => {
     }
   })
 })
+// POST ADD SUPLIER --WORKED
+router.post('/add-suplier', (req, res, next) => {
+  let { suplier } = req.body
+  pool.query('INSERT INTO suplier (suplier_name) VALUES ($1)', [suplier], (error, response) => {
+    try {
+      if (response) {
+        return res.status(201).json({ status: 201, messages: "Thêm nhà cung cấp thành công" })
+      } else if (error) {
+        return res.status(200).json({ status: 400, messages: "Thêm nhà cung cấp thất bại" })
+      }
+    } catch {
+      return res.status(200).json({ status: 400, messages: "Lỗi" })
+    }
+  })
+})
 /***********************DELETE METHOD**********************************/
 // DELETE PRODUCTS --WORKED
 router.delete('/delete-product/:id/:image', async (req, res, next) => {
@@ -224,8 +262,8 @@ router.delete('/delete-product/:id/:image', async (req, res, next) => {
   pool.query('DELETE FROM products WHERE prod_id = ' + id, (err, response) => {
     try {
       if (response) {
-        fs.unlinkSync(`images/products/${image}`)
         res.status(200).json({ status: 200, messages: "Xóa sản phẩm thành công" })
+        fs.unlinkSync(`images/products/${image}`)
       } else if (err) {
         return res.status(200).json({ status: 200, messages: "Xóa sản phẩm thất bại" })
       }
