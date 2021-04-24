@@ -262,8 +262,8 @@ router.delete('/delete-product/:id/:image', async (req, res, next) => {
   pool.query('DELETE FROM products WHERE prod_id = ' + id, (err, response) => {
     try {
       if (response) {
-        res.status(200).json({ status: 200, messages: "Xóa sản phẩm thành công" })
         fs.unlinkSync(`images/products/${image}`)
+        res.status(200).json({ status: 200, messages: "Xóa sản phẩm thành công" })
       } else if (err) {
         return res.status(200).json({ status: 200, messages: "Xóa sản phẩm thất bại" })
       }
