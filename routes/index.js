@@ -46,9 +46,33 @@ router.post('/register', (req, res, next) => {
 
 
 
-//get products --WORKED
+//get-products --WORKED
 router.get('/getProducts', (req, res, next) => {
-  const query = 'SELECT products.prod_id,	prod_name, cate_name, price_sell, prod_price,	prod_quantity,	prod_cate,	prod_bunker,prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate ORDER BY prod_name'
+  const query = 'SELECT products.prod_id,	prod_name, cate_name, price_sell, prod_price,	prod_cate,prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate ORDER BY prod_name'
+  pool.query(query, (error, response) => {
+    if (response) {
+      res.send(response.rows)
+    } else if (error) {
+      res.send(error)
+    }
+  })
+})
+//get-products-by-cate --WORKED
+router.post('/get-products-by-cate/:cateid', (req, res, next) => {
+  const { cateid } = req.params
+  const query = 'SELECT products.prod_id,prod_name, cate_name, price_sell, prod_price,	prod_cate,prod_image,unit_name,	prod_unit,prod_producer,producer_name,prod_description FROM products INNER JOIN producer   ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate and prod_cate =' + cateid
+  pool.query(query, (error, response) => {
+    if (response) {
+      res.send(response.rows)
+    } else if (error) {
+      res.send(error)
+    }
+  })
+})
+//get-products-by-producer --WORKED
+router.post('/get-products-by-producer/:producerid', (req, res, next) => {
+  const { producerid } = req.params
+  const query = 'SELECT products.prod_id,prod_name, cate_name, price_sell, prod_price,	prod_cate,prod_image,unit_name,	prod_unit,prod_producer,producer_name,prod_description FROM products INNER JOIN producer  ON producer.producer_id = products.prod_producer and prod_producer = ' + producerid + ' INNER JOIN unit_prod u ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate'
   pool.query(query, (error, response) => {
     if (response) {
       res.send(response.rows)
@@ -63,7 +87,7 @@ router.get('/getProducts', (req, res, next) => {
 //get products by category --TESTING
 router.get('/get-product-by-cate/:fieldid', (req, res, next) => {
   let prod_cate = req.params.fieldid
-  let query = 'SELECT products.prod_id,prod_name, cate_name, price_sell, prod_price,	prod_quantity,	prod_cate,prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate where (prod_cate = $1)'
+  let query = 'SELECT products.prod_id,prod_name, cate_name, price_sell, prod_price,prod_cate,prod_image,	unit_name,	prod_unit,	prod_producer,	producer_name,	prod_description FROM	products INNER JOIN producer    ON producer.producer_id = products.prod_producer INNER JOIN unit_prod u	ON u.unit_id = prod_unit INNER JOIN categories cate ON cate.cate_id = prod_cate where (prod_cate = $1)'
   pool.query(query, [prod_cate], (error, response) => {
     if (response) {
       res.send(response.rows)
@@ -160,11 +184,11 @@ const fileStorageEngine = multer.diskStorage({
 const upload = multer({ storage: fileStorageEngine })
 //add products --WORKED
 router.post('/add-products', upload.single("image"), (req, res) => {
-  let { product_name, product_bunker, product_cate, product_price, product_producer, product_quantity, product_unit, product_image, product_description, product_sell } = req.body
+  let { product_name, product_cate, product_price, product_producer, product_unit, product_image, product_description, product_sell } = req.body
+  console.log(req.body);
 
-
-  let query = "INSERT INTO public.products( prod_name, prod_price, prod_quantity, prod_cate, prod_image, prod_unit, prod_producer, prod_description, price_sell)VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
-  pool.query(query, [product_name, product_price, product_quantity, product_cate, product_image, product_unit, product_producer, product_description, product_sell], (error, response) => {
+  let query = "INSERT INTO public.products( prod_name, prod_price, prod_cate, prod_image, prod_unit, prod_producer, prod_description, price_sell)VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+  pool.query(query, [product_name, product_price, product_cate, product_image, product_unit, product_producer, product_description, product_sell], (error, response) => {
     try {
       if (response) {
         return res.status(201).json({ status: 200, messages: "Thêm sản phẩm thành công " })
@@ -172,7 +196,7 @@ router.post('/add-products', upload.single("image"), (req, res) => {
         return res.status(200).json({ status: 404, messages: "Thêm sản phẩm thất bại " })
       }
     } catch {
-      return res.status(200).json({ status: 400, messages: "Thêm sản phẩm thất bại" })
+      // return res.status(200).json({ status: 400, messages: "Thêm sản phẩm thất bại" })
     }
   })
 })
@@ -254,6 +278,39 @@ router.post('/add-suplier', (req, res, next) => {
     }
   })
 })
+// POST ADD BILLS IMPORT PRODUCTS --WORKED
+router.post('/add-bills-import-products', (req, res, next) => {
+  const { prod_id, quantity, price, suplier_id, user_id, date, totalMoney, bunker_id } = req.body
+  const bill_infor = "Nhập hàng"
+  const bill_bunker_status = 1
+  const bill_pay_status = 1
+  console.log(req.body);
+  const query = 'INSERT INTO public.bills(bill_infor, bill_bunker, bill_user, bill_total, bill_pay_status, bill_bunker_status, bill_suplier, bill_create_at)VALUES ($1, $2, $3, $4, $5,$6, $7, $8);'
+  pool.query(query, [bill_infor, bunker_id, user_id, totalMoney, bill_pay_status, bill_bunker_status, suplier_id, date], (error, response) => {
+    try {
+      if (response) {
+        const queryGetLastestBill = 'SELECT  bill_id FROM public.bills ORDER BY bill_id DESC LIMIT 1'
+        pool.query(queryGetLastestBill, (err1, res1) => {
+          if (res1) {
+            const lastedID = res1.rows[0].bill_id
+            const query2 = 'INSERT INTO public.bill_product(bill_id,product_id,quantity) VALUES ($1,$2,$3)'
+            pool.query(query2, [lastedID, prod_id, quantity], (err2, res2) => {
+              if (res2) {
+                return res.status(201).json({ status: 201, messages: "Nhập hàng thành công" })
+              }
+            })
+          }
+        })
+      } else if (error) {
+        return res.status(200).json({ status: 400, messages: "Nhập hàng thất bại" })
+      }
+    } catch {
+      return res.status(200).json({ status: 400, messages: "Lỗi" })
+    }
+  })
+})
+//POST ADD BILL
+
 /***********************DELETE METHOD**********************************/
 // DELETE PRODUCTS --WORKED
 router.delete('/delete-product/:id/:image', async (req, res, next) => {
